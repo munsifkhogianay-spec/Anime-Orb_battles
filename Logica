@@ -1,0 +1,434 @@
+import { useState, useMemo } from "react";
+
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');`;
+
+const css = `
+${FONT}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a0f; }
+.app {
+min-height: 100vh;
+background: #0a0a0f;
+color: #e8e8f0;
+font-family: 'JetBrains Mono', monospace;
+padding: 24px 16px;
+}
+h1 {
+font-family: 'Syne', sans-serif;
+font-size: 1.8rem;
+font-weight: 800;
+letter-spacing: -1px;
+background: linear-gradient(135deg, #a78bfa, #38bdf8);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+margin-bottom: 4px;
+}
+.subtitle {
+font-size: 0.72rem;
+color: #555570;
+margin-bottom: 24px;
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+.input-row {
+display: flex;
+gap: 8px;
+margin-bottom: 12px;
+flex-wrap: wrap;
+}
+.formula-input {
+flex: 1;
+min-width: 200px;
+background: #13131f;
+border: 1px solid #2a2a40;
+border-radius: 8px;
+color: #e8e8f0;
+font-family: 'JetBrains Mono', monospace;
+font-size: 1rem;
+padding: 10px 14px;
+outline: none;
+transition: border-color 0.2s;
+}
+.formula-input:focus { border-color: #a78bfa; }
+.formula-input.error { border-color: #f87171; }
+.btn {
+background: linear-gradient(135deg, #a78bfa, #38bdf8);
+border: none;
+border-radius: 8px;
+color: #0a0a0f;
+font-family: 'Syne', sans-serif;
+font-weight: 700;
+font-size: 0.85rem;
+padding: 10px 20px;
+cursor: pointer;
+letter-spacing: 0.5px;
+transition: opacity 0.2s, transform 0.1s;
+}
+.btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-clear {
+background: #1e1e2e;
+border: 1px solid #2a2a40;
+color: #888;
+}
+.btn-clear:hover { border-color: #555; color: #ccc; opacity: 1; }
+.symbols {
+display: flex;
+flex-wrap: wrap;
+gap: 6px;
+margin-bottom: 20px;
+}
+.sym-btn {
+background: #13131f;
+border: 1px solid #2a2a40;
+border-radius: 6px;
+color: #a78bfa;
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.9rem;
+padding: 5px 10px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.sym-btn:hover { background: #1e1e30; border-color: #a78bfa; color: #c4b5fd; }
+.sym-label {
+font-size: 0.65rem;
+color: #444460;
+display: block;
+text-align: center;
+margin-top: 2px;
+letter-spacing: 0.5px;
+}
+.error-msg {
+color: #f87171;
+font-size: 0.78rem;
+margin-bottom: 12px;
+padding: 8px 12px;
+background: #1f0f0f;
+border-radius: 6px;
+border-left: 3px solid #f87171;
+}
+.table-wrap {
+overflow-x: auto;
+border-radius: 10px;
+border: 1px solid #1e1e30;
+}
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.82rem;
+}
+thead tr {
+background: #13131f;
+}
+th {
+padding: 10px 14px;
+text-align: center;
+font-family: 'JetBrains Mono', monospace;
+font-weight: 700;
+letter-spacing: 0.5px;
+border-bottom: 2px solid #2a2a40;
+white-space: nowrap;
+}
+th.var-col { color: #38bdf8; }
+th.result-col { color: #a78bfa; }
+td {
+padding: 8px 14px;
+text-align: center;
+border-bottom: 1px solid #12121e;
+transition: background 0.1s;
+}
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) { background: #0d0d18; }
+tr:hover td { background: #15152a; }
+.val-0 { color: #f87171; font-weight: 700; }
+.val-1 { color: #4ade80; font-weight: 700; }
+.result-td { background: #11113a !important; }
+tr:nth-child(even) .result-td { background: #0e0e30 !important; }
+tr:hover .result-td { background: #14144a !important; }
+.stats {
+display: flex;
+gap: 12px;
+margin-top: 14px;
+flex-wrap: wrap;
+}
+.stat {
+background: #13131f;
+border: 1px solid #1e1e30;
+border-radius: 8px;
+padding: 8px 14px;
+font-size: 0.75rem;
+}
+.stat-label { color: #555570; text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
+.stat-val { color: #e8e8f0; font-size: 1rem; font-weight: 700; margin-top: 2px; }
+.taut { color: #4ade80; }
+.contra { color: #f87171; }
+.conting { color: #fbbf24; }
+.hint {
+font-size: 0.72rem;
+color: #444460;
+margin-bottom: 16px;
+line-height: 1.6;
+}
+.hint span { color: #6060a0; }
+`;
+
+const SYMBOLS = [
+{ sym: "¬", label: "NOT", insert: "¬" },
+{ sym: "∧", label: "AND", insert: "∧" },
+{ sym: "∨", label: "OR", insert: "∨" },
+{ sym: "→", label: "IMP", insert: "→" },
+{ sym: "↔", label: "EQV", insert: "↔" },
+{ sym: "(", label: "", insert: "(" },
+{ sym: ")", label: "", insert: ")" },
+];
+
+function extractVars(formula) {
+const vars = new Set();
+for (const ch of formula) {
+if (/[a-zA-Z]/.test(ch)) vars.add(ch);
+}
+return [...vars].sort();
+}
+
+function tokenize(formula) {
+const tokens = [];
+let i = 0;
+while (i < formula.length) {
+const ch = formula[i];
+if (/\s/.test(ch)) { i++; continue; }
+if (/[a-zA-Z]/.test(ch)) { tokens.push({ type: "VAR", val: ch }); i++; continue; }
+if (ch === "¬" || ch === "~" || ch === "!") { tokens.push({ type: "NOT" }); i++; continue; }
+if (ch === "∧" || ch === "&") { tokens.push({ type: "AND" }); i++; continue; }
+if (ch === "∨" || ch === "|") { tokens.push({ type: "OR" }); i++; continue; }
+if (ch === "→" || (ch === "-" && formula[i+1] === ">")) {
+tokens.push({ type: "IMP" });
+i += ch === "→" ? 1 : 2;
+continue;
+}
+if (ch === "↔" || (ch === "<" && formula[i+1] === "-" && formula[i+2] === ">")) {
+tokens.push({ type: "EQV" });
+i += ch === "↔" ? 1 : 3;
+continue;
+}
+if (ch === "(") { tokens.push({ type: "LPAREN" }); i++; continue; }
+if (ch === ")") { tokens.push({ type: "RPAREN" }); i++; continue; }
+if (ch === "0" || ch === "1") { tokens.push({ type: "LIT", val: +ch }); i++; continue; }
+throw new Error(`Unknown symbol: '${ch}'`);
+}
+return tokens;
+}
+
+function parse(tokens) {
+let pos = 0;
+function peek() { return tokens[pos]; }
+function consume() { return tokens[pos++]; }
+
+function parseEqv() {
+let left = parseImp();
+while (peek()?.type === "EQV") { consume(); const right = parseImp(); left = { type: "EQV", left, right }; }
+return left;
+}
+function parseImp() {
+let left = parseOr();
+while (peek()?.type === "IMP") { consume(); const right = parseOr(); left = { type: "IMP", left, right }; }
+return left;
+}
+function parseOr() {
+let left = parseAnd();
+while (peek()?.type === "OR") { consume(); const right = parseAnd(); left = { type: "OR", left, right }; }
+return left;
+}
+function parseAnd() {
+let left = parseNot();
+while (peek()?.type === "AND") { consume(); const right = parseNot(); left = { type: "AND", left, right }; }
+return left;
+}
+function parseNot() {
+if (peek()?.type === "NOT") { consume(); return { type: "NOT", child: parseNot() }; }
+return parseAtom();
+}
+function parseAtom() {
+const t = peek();
+if (!t) throw new Error("Unexpected end of formula");
+if (t.type === "VAR") { consume(); return { type: "VAR", val: t.val }; }
+if (t.type === "LIT") { consume(); return { type: "LIT", val: t.val }; }
+if (t.type === "LPAREN") {
+consume();
+const expr = parseEqv();
+if (peek()?.type !== "RPAREN") throw new Error("Missing closing )");
+consume();
+return expr;
+}
+throw new Error(`Unexpected token: '${t.val || t.type}'`);
+}
+
+const result = parseEqv();
+if (pos < tokens.length) throw new Error("Unexpected token after formula");
+return result;
+}
+
+function evaluate(node, env) {
+switch (node.type) {
+case "VAR": return env[node.val];
+case "LIT": return node.val;
+case "NOT": return evaluate(node.child, env) === 1 ? 0 : 1;
+case "AND": return evaluate(node.left, env) === 1 && evaluate(node.right, env) === 1 ? 1 : 0;
+case "OR": return evaluate(node.left, env) === 1 || evaluate(node.right, env) === 1 ? 1 : 0;
+case "IMP": return evaluate(node.left, env) === 0 || evaluate(node.right, env) === 1 ? 1 : 0;
+case "EQV": return evaluate(node.left, env) === evaluate(node.right, env) ? 1 : 0;
+default: throw new Error("Unknown node type");
+}
+}
+
+function buildTable(formula) {
+const tokens = tokenize(formula);
+const ast = parse(tokens);
+const vars = extractVars(formula);
+const n = vars.length;
+const rows = 1 << n;
+const table = [];
+for (let i = 0; i < rows; i++) {
+const env = {};
+vars.forEach((v, idx) => {
+env[v] = (i >> idx) & 1;
+});
+table.push({ env, result: evaluate(ast, env) });
+}
+return { vars, table };
+}
+
+export default function App() {
+const [formula, setFormula] = useState("");
+const [submitted, setSubmitted] = useState("");
+const [error, setError] = useState("");
+const [inputRef, setInputRef] = useState(null);
+
+const result = useMemo(() => {
+if (!submitted) return null;
+try {
+return buildTable(submitted);
+} catch (e) {
+return { error: e.message };
+}
+}, [submitted]);
+
+function handleSolve() {
+const f = formula.trim();
+if (!f) return;
+setError("");
+try {
+buildTable(f);
+setSubmitted(f);
+} catch (e) {
+setError(e.message);
+}
+}
+
+function insertSymbol(sym) {
+if (!inputRef) { setFormula(f => f + sym); return; }
+const start = inputRef.selectionStart;
+const end = inputRef.selectionEnd;
+const newVal = formula.slice(0, start) + sym + formula.slice(end);
+setFormula(newVal);
+setTimeout(() => {
+inputRef.setSelectionRange(start + sym.length, start + sym.length);
+inputRef.focus();
+}, 0);
+}
+
+const stats = useMemo(() => {
+if (!result || result.error) return null;
+const ones = result.table.filter(r => r.result === 1).length;
+const total = result.table.length;
+const type = ones === total ? "tautology" : ones === 0 ? "contradiction" : "contingency";
+return { ones, zeros: total - ones, total, type };
+}, [result]);
+
+return (
+<>
+
+
+Truth Table Solver
+
+Logische uitspraken · Waarheidstabellen
+
+
+
+{SYMBOLS.map(s => (
+insertSymbol(s.insert)}>
+{s.sym}
+{s.label && {s.label}}
+
+))}
+
+
+
+Typ variabelen als letters: p, q, r, ...  | 
+Alternatief: & = ∧, | = ∨, ~ = ¬, -{'>'} = →, {'<->'} = ↔
+
+
+
+setInputRef(r)}
+className={`formula-input${error ? " error" : ""}`}
+value={formula}
+onChange={e => { setFormula(e.target.value); setError(""); }}
+onKeyDown={e => e.key === "Enter" && handleSolve()}
+placeholder="bijv. (p ∧ q) → ¬r"
+/>
+Oplossen
+{ setFormula(""); setSubmitted(""); setError(""); }}>Wis
+
+
+{error &&
+⚠ {error}
+}
+
+{result && !result.error && (
+<>
+
+{v}	{submitted}
+
+{row.env[v]}
+
+{row.result}
+
+
+
+{stats && (
+
+
+Rijen
+
+{stats.total}
+
+
+
+Uitkomst 1
+
+{stats.ones}
+
+
+
+Uitkomst 0
+
+{stats.zeros}
+
+
+
+Type
+
+
+{stats.type === "tautology" ? "Tautologie" : stats.type === "contradiction" ? "Contradictie" : "Contingentie"}
+
+
+
+)}
+>
+)}
+
+{result?.error &&
+⚠ {result.error}
+}
+
+>
+);
