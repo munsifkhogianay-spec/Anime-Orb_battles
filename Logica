@@ -1,434 +1,470 @@
-import { useState, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Truth Table Solver</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0f;
+      color: #e8e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 0.72rem;
+      color: #555570;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .formula-input {
+      flex: 1;
+      min-width: 200px;
+      background: #13131f;
+      border: 1px solid #2a2a40;
+      border-radius: 8px;
+      color: #e8e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .formula-input:focus { border-color: #a78bfa; }
+    .formula-input.error { border-color: #f87171; }
+    .btn {
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      border: none;
+      border-radius: 8px;
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-clear {
+      background: #1e1e2e;
+      border: 1px solid #2a2a40;
+      color: #888;
+    }
+    .btn-clear:hover { border-color: #555; color: #ccc; }
+    .symbols {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .sym-btn {
+      background: #13131f;
+      border: 1px solid #2a2a40;
+      border-radius: 6px;
+      color: #a78bfa;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sym-btn:hover { background: #1e1e30; border-color: #a78bfa; color: #c4b5fd; }
+    .sym-label {
+      font-size: 0.65rem;
+      color: #444460;
+      display: block;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .error-msg {
+      color: #f87171;
+      font-size: 0.78rem;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #1f0f0f;
+      border-radius: 6px;
+      border-left: 3px solid #f87171;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid #1e1e30;
+      margin-top: 16px;
+    }
+    table {
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    thead tr { background: #13131f; }
+    th {
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: 700;
+      border-bottom: 2px solid #2a2a40;
+      white-space: nowrap;
+      border-right: 1px solid #1e1e30;
+    }
+    th:last-child { border-right: none; }
+    th.var-col { color: #38bdf8; }
+    th.sub-col { color: #94a3b8; font-size: 0.75rem; }
+    th.result-col {
+      color: #a78bfa;
+      background: #16163a;
+      border-left: 2px solid #a78bfa44;
+    }
+    td {
+      padding: 8px 14px;
+      text-align: center;
+      border-bottom: 1px solid #12121e;
+      border-right: 1px solid #0f0f1e;
+    }
+    td:last-child { border-right: none; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background: #0d0d18; }
+    tr:hover td { background: #15152a; }
+    .val-0 { color: #f87171; font-weight: 700; }
+    .val-1 { color: #4ade80; font-weight: 700; }
+    .result-td {
+      background: #11113a !important;
+      border-left: 2px solid #a78bfa44 !important;
+    }
+    tr:nth-child(even) .result-td { background: #0e0e30 !important; }
+    tr:hover .result-td { background: #14144a !important; }
+    .divider-th {
+      border-left: 2px solid #2a2a50 !important;
+    }
+    .divider-td {
+      border-left: 2px solid #1a1a35 !important;
+    }
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: #13131f;
+      border: 1px solid #1e1e30;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.75rem;
+    }
+    .stat-label { color: #555570; text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
+    .stat-val { color: #e8e8f0; font-size: 1rem; font-weight: 700; margin-top: 2px; }
+    .taut { color: #4ade80; }
+    .contra { color: #f87171; }
+    .conting { color: #fbbf24; }
+    .hint { font-size: 0.72rem; color: #444460; margin-bottom: 16px; line-height: 1.6; }
+    .hint span { color: #6060a0; }
+    .step-legend {
+      margin-top: 10px;
+      font-size: 0.7rem;
+      color: #444460;
+    }
+    .step-legend span { color: #6060a0; }
+  </style>
+</head>
+<body>
 
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');`;
+  <h1>Truth Table Solver</h1>
+  <div class="subtitle">Logische uitspraken · Waarheidstabellen · Stap voor stap</div>
 
-const css = `
-${FONT}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #0a0a0f; }
-.app {
-min-height: 100vh;
-background: #0a0a0f;
-color: #e8e8f0;
-font-family: 'JetBrains Mono', monospace;
-padding: 24px 16px;
-}
-h1 {
-font-family: 'Syne', sans-serif;
-font-size: 1.8rem;
-font-weight: 800;
-letter-spacing: -1px;
-background: linear-gradient(135deg, #a78bfa, #38bdf8);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-margin-bottom: 4px;
-}
-.subtitle {
-font-size: 0.72rem;
-color: #555570;
-margin-bottom: 24px;
-letter-spacing: 1px;
-text-transform: uppercase;
-}
-.input-row {
-display: flex;
-gap: 8px;
-margin-bottom: 12px;
-flex-wrap: wrap;
-}
-.formula-input {
-flex: 1;
-min-width: 200px;
-background: #13131f;
-border: 1px solid #2a2a40;
-border-radius: 8px;
-color: #e8e8f0;
-font-family: 'JetBrains Mono', monospace;
-font-size: 1rem;
-padding: 10px 14px;
-outline: none;
-transition: border-color 0.2s;
-}
-.formula-input:focus { border-color: #a78bfa; }
-.formula-input.error { border-color: #f87171; }
-.btn {
-background: linear-gradient(135deg, #a78bfa, #38bdf8);
-border: none;
-border-radius: 8px;
-color: #0a0a0f;
-font-family: 'Syne', sans-serif;
-font-weight: 700;
-font-size: 0.85rem;
-padding: 10px 20px;
-cursor: pointer;
-letter-spacing: 0.5px;
-transition: opacity 0.2s, transform 0.1s;
-}
-.btn:hover { opacity: 0.85; transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
-.btn-clear {
-background: #1e1e2e;
-border: 1px solid #2a2a40;
-color: #888;
-}
-.btn-clear:hover { border-color: #555; color: #ccc; opacity: 1; }
-.symbols {
-display: flex;
-flex-wrap: wrap;
-gap: 6px;
-margin-bottom: 20px;
-}
-.sym-btn {
-background: #13131f;
-border: 1px solid #2a2a40;
-border-radius: 6px;
-color: #a78bfa;
-font-family: 'JetBrains Mono', monospace;
-font-size: 0.9rem;
-padding: 5px 10px;
-cursor: pointer;
-transition: all 0.15s;
-}
-.sym-btn:hover { background: #1e1e30; border-color: #a78bfa; color: #c4b5fd; }
-.sym-label {
-font-size: 0.65rem;
-color: #444460;
-display: block;
-text-align: center;
-margin-top: 2px;
-letter-spacing: 0.5px;
-}
-.error-msg {
-color: #f87171;
-font-size: 0.78rem;
-margin-bottom: 12px;
-padding: 8px 12px;
-background: #1f0f0f;
-border-radius: 6px;
-border-left: 3px solid #f87171;
-}
-.table-wrap {
-overflow-x: auto;
-border-radius: 10px;
-border: 1px solid #1e1e30;
-}
-table {
-width: 100%;
-border-collapse: collapse;
-font-size: 0.82rem;
-}
-thead tr {
-background: #13131f;
-}
-th {
-padding: 10px 14px;
-text-align: center;
-font-family: 'JetBrains Mono', monospace;
-font-weight: 700;
-letter-spacing: 0.5px;
-border-bottom: 2px solid #2a2a40;
-white-space: nowrap;
-}
-th.var-col { color: #38bdf8; }
-th.result-col { color: #a78bfa; }
-td {
-padding: 8px 14px;
-text-align: center;
-border-bottom: 1px solid #12121e;
-transition: background 0.1s;
-}
-tr:last-child td { border-bottom: none; }
-tr:nth-child(even) { background: #0d0d18; }
-tr:hover td { background: #15152a; }
-.val-0 { color: #f87171; font-weight: 700; }
-.val-1 { color: #4ade80; font-weight: 700; }
-.result-td { background: #11113a !important; }
-tr:nth-child(even) .result-td { background: #0e0e30 !important; }
-tr:hover .result-td { background: #14144a !important; }
-.stats {
-display: flex;
-gap: 12px;
-margin-top: 14px;
-flex-wrap: wrap;
-}
-.stat {
-background: #13131f;
-border: 1px solid #1e1e30;
-border-radius: 8px;
-padding: 8px 14px;
-font-size: 0.75rem;
-}
-.stat-label { color: #555570; text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
-.stat-val { color: #e8e8f0; font-size: 1rem; font-weight: 700; margin-top: 2px; }
-.taut { color: #4ade80; }
-.contra { color: #f87171; }
-.conting { color: #fbbf24; }
-.hint {
-font-size: 0.72rem;
-color: #444460;
-margin-bottom: 16px;
-line-height: 1.6;
-}
-.hint span { color: #6060a0; }
-`;
+  <div class="symbols" id="symbols"></div>
 
-const SYMBOLS = [
-{ sym: "¬", label: "NOT", insert: "¬" },
-{ sym: "∧", label: "AND", insert: "∧" },
-{ sym: "∨", label: "OR", insert: "∨" },
-{ sym: "→", label: "IMP", insert: "→" },
-{ sym: "↔", label: "EQV", insert: "↔" },
-{ sym: "(", label: "", insert: "(" },
-{ sym: ")", label: "", insert: ")" },
-];
+  <div class="hint">
+    Typ variabelen als letters: <span>p, q, r, ...</span> &nbsp;|&nbsp;
+    Alternatief: <span>&amp; = ∧</span>, <span>| = ∨</span>, <span>~ = ¬</span>, <span>-&gt; = →</span>, <span>&lt;-&gt; = ↔</span>
+  </div>
 
-function extractVars(formula) {
-const vars = new Set();
-for (const ch of formula) {
-if (/[a-zA-Z]/.test(ch)) vars.add(ch);
-}
-return [...vars].sort();
-}
+  <div class="input-row">
+    <input id="formulaInput" class="formula-input" placeholder="bijv.  (s→¬p)→(¬t∨v)" />
+    <button class="btn" onclick="solve()">Oplossen</button>
+    <button class="btn btn-clear" onclick="clearAll()">Wis</button>
+  </div>
 
-function tokenize(formula) {
-const tokens = [];
-let i = 0;
-while (i < formula.length) {
-const ch = formula[i];
-if (/\s/.test(ch)) { i++; continue; }
-if (/[a-zA-Z]/.test(ch)) { tokens.push({ type: "VAR", val: ch }); i++; continue; }
-if (ch === "¬" || ch === "~" || ch === "!") { tokens.push({ type: "NOT" }); i++; continue; }
-if (ch === "∧" || ch === "&") { tokens.push({ type: "AND" }); i++; continue; }
-if (ch === "∨" || ch === "|") { tokens.push({ type: "OR" }); i++; continue; }
-if (ch === "→" || (ch === "-" && formula[i+1] === ">")) {
-tokens.push({ type: "IMP" });
-i += ch === "→" ? 1 : 2;
-continue;
-}
-if (ch === "↔" || (ch === "<" && formula[i+1] === "-" && formula[i+2] === ">")) {
-tokens.push({ type: "EQV" });
-i += ch === "↔" ? 1 : 3;
-continue;
-}
-if (ch === "(") { tokens.push({ type: "LPAREN" }); i++; continue; }
-if (ch === ")") { tokens.push({ type: "RPAREN" }); i++; continue; }
-if (ch === "0" || ch === "1") { tokens.push({ type: "LIT", val: +ch }); i++; continue; }
-throw new Error(`Unknown symbol: '${ch}'`);
-}
-return tokens;
-}
+  <div id="errorMsg" class="error-msg" style="display:none"></div>
+  <div id="tableWrap"></div>
+  <div id="stats" class="stats"></div>
 
-function parse(tokens) {
-let pos = 0;
-function peek() { return tokens[pos]; }
-function consume() { return tokens[pos++]; }
+  <script>
+    const SYMBOLS = [
+      { sym: "¬", label: "NOT" },
+      { sym: "∧", label: "AND" },
+      { sym: "∨", label: "OR" },
+      { sym: "→", label: "IMP" },
+      { sym: "↔", label: "EQV" },
+      { sym: "(",  label: "" },
+      { sym: ")",  label: "" },
+    ];
 
-function parseEqv() {
-let left = parseImp();
-while (peek()?.type === "EQV") { consume(); const right = parseImp(); left = { type: "EQV", left, right }; }
-return left;
-}
-function parseImp() {
-let left = parseOr();
-while (peek()?.type === "IMP") { consume(); const right = parseOr(); left = { type: "IMP", left, right }; }
-return left;
-}
-function parseOr() {
-let left = parseAnd();
-while (peek()?.type === "OR") { consume(); const right = parseAnd(); left = { type: "OR", left, right }; }
-return left;
-}
-function parseAnd() {
-let left = parseNot();
-while (peek()?.type === "AND") { consume(); const right = parseNot(); left = { type: "AND", left, right }; }
-return left;
-}
-function parseNot() {
-if (peek()?.type === "NOT") { consume(); return { type: "NOT", child: parseNot() }; }
-return parseAtom();
-}
-function parseAtom() {
-const t = peek();
-if (!t) throw new Error("Unexpected end of formula");
-if (t.type === "VAR") { consume(); return { type: "VAR", val: t.val }; }
-if (t.type === "LIT") { consume(); return { type: "LIT", val: t.val }; }
-if (t.type === "LPAREN") {
-consume();
-const expr = parseEqv();
-if (peek()?.type !== "RPAREN") throw new Error("Missing closing )");
-consume();
-return expr;
-}
-throw new Error(`Unexpected token: '${t.val || t.type}'`);
-}
+    const symContainer = document.getElementById("symbols");
+    const input = document.getElementById("formulaInput");
 
-const result = parseEqv();
-if (pos < tokens.length) throw new Error("Unexpected token after formula");
-return result;
-}
+    SYMBOLS.forEach(({ sym, label }) => {
+      const btn = document.createElement("button");
+      btn.className = "sym-btn";
+      btn.innerHTML = sym + (label ? `<span class="sym-label">${label}</span>` : "");
+      btn.onclick = () => {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        input.value = input.value.slice(0, start) + sym + input.value.slice(end);
+        input.focus();
+        input.setSelectionRange(start + sym.length, start + sym.length);
+      };
+      symContainer.appendChild(btn);
+    });
 
-function evaluate(node, env) {
-switch (node.type) {
-case "VAR": return env[node.val];
-case "LIT": return node.val;
-case "NOT": return evaluate(node.child, env) === 1 ? 0 : 1;
-case "AND": return evaluate(node.left, env) === 1 && evaluate(node.right, env) === 1 ? 1 : 0;
-case "OR": return evaluate(node.left, env) === 1 || evaluate(node.right, env) === 1 ? 1 : 0;
-case "IMP": return evaluate(node.left, env) === 0 || evaluate(node.right, env) === 1 ? 1 : 0;
-case "EQV": return evaluate(node.left, env) === evaluate(node.right, env) ? 1 : 0;
-default: throw new Error("Unknown node type");
-}
-}
+    input.addEventListener("keydown", e => { if (e.key === "Enter") solve(); });
 
-function buildTable(formula) {
-const tokens = tokenize(formula);
-const ast = parse(tokens);
-const vars = extractVars(formula);
-const n = vars.length;
-const rows = 1 << n;
-const table = [];
-for (let i = 0; i < rows; i++) {
-const env = {};
-vars.forEach((v, idx) => {
-env[v] = (i >> idx) & 1;
-});
-table.push({ env, result: evaluate(ast, env) });
-}
-return { vars, table };
-}
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = "⚠ " + msg;
+      el.style.display = "block";
+      input.classList.add("error");
+    }
+    function hideError() {
+      document.getElementById("errorMsg").style.display = "none";
+      input.classList.remove("error");
+    }
+    function clearAll() {
+      input.value = "";
+      hideError();
+      document.getElementById("tableWrap").innerHTML = "";
+      document.getElementById("stats").innerHTML = "";
+    }
 
-export default function App() {
-const [formula, setFormula] = useState("");
-const [submitted, setSubmitted] = useState("");
-const [error, setError] = useState("");
-const [inputRef, setInputRef] = useState(null);
+    // ─── Tokenizer ───────────────────────────────────────────────
+    function tokenize(formula) {
+      const tokens = [];
+      let i = 0;
+      while (i < formula.length) {
+        const ch = formula[i];
+        if (/\s/.test(ch)) { i++; continue; }
+        if (/[a-zA-Z]/.test(ch)) { tokens.push({ type: "VAR", val: ch }); i++; continue; }
+        if (ch === "¬" || ch === "~" || ch === "!") { tokens.push({ type: "NOT" }); i++; continue; }
+        if (ch === "∧" || ch === "&") { tokens.push({ type: "AND" }); i++; continue; }
+        if (ch === "∨" || ch === "|") { tokens.push({ type: "OR" }); i++; continue; }
+        if (ch === "→") { tokens.push({ type: "IMP" }); i++; continue; }
+        if (ch === "-" && formula[i+1] === ">") { tokens.push({ type: "IMP" }); i += 2; continue; }
+        if (ch === "↔") { tokens.push({ type: "EQV" }); i++; continue; }
+        if (ch === "<" && formula[i+1] === "-" && formula[i+2] === ">") { tokens.push({ type: "EQV" }); i += 3; continue; }
+        if (ch === "(") { tokens.push({ type: "LPAREN" }); i++; continue; }
+        if (ch === ")") { tokens.push({ type: "RPAREN" }); i++; continue; }
+        if (ch === "0" || ch === "1") { tokens.push({ type: "LIT", val: +ch }); i++; continue; }
+        throw new Error(`Onbekend symbool: '${ch}'`);
+      }
+      return tokens;
+    }
 
-const result = useMemo(() => {
-if (!submitted) return null;
-try {
-return buildTable(submitted);
-} catch (e) {
-return { error: e.message };
-}
-}, [submitted]);
+    // ─── Parser — builds AST with labels ─────────────────────────
+    function parse(tokens) {
+      let pos = 0;
+      const peek = () => tokens[pos];
+      const consume = () => tokens[pos++];
 
-function handleSolve() {
-const f = formula.trim();
-if (!f) return;
-setError("");
-try {
-buildTable(f);
-setSubmitted(f);
-} catch (e) {
-setError(e.message);
-}
-}
+      function parseEqv() {
+        let left = parseImp();
+        while (peek()?.type === "EQV") {
+          consume();
+          const right = parseImp();
+          left = { type: "EQV", left, right, label: `(${left.label}↔${right.label})` };
+        }
+        return left;
+      }
+      function parseImp() {
+        let left = parseOr();
+        while (peek()?.type === "IMP") {
+          consume();
+          const right = parseOr();
+          left = { type: "IMP", left, right, label: `(${left.label}→${right.label})` };
+        }
+        return left;
+      }
+      function parseOr() {
+        let left = parseAnd();
+        while (peek()?.type === "OR") {
+          consume();
+          const right = parseAnd();
+          left = { type: "OR", left, right, label: `(${left.label}∨${right.label})` };
+        }
+        return left;
+      }
+      function parseAnd() {
+        let left = parseNot();
+        while (peek()?.type === "AND") {
+          consume();
+          const right = parseNot();
+          left = { type: "AND", left, right, label: `(${left.label}∧${right.label})` };
+        }
+        return left;
+      }
+      function parseNot() {
+        if (peek()?.type === "NOT") {
+          consume();
+          const child = parseNot();
+          return { type: "NOT", child, label: `¬${child.label}` };
+        }
+        return parseAtom();
+      }
+      function parseAtom() {
+        const t = peek();
+        if (!t) throw new Error("Onverwacht einde van formule");
+        if (t.type === "VAR") { consume(); return { type: "VAR", val: t.val, label: t.val }; }
+        if (t.type === "LIT") { consume(); return { type: "LIT", val: t.val, label: String(t.val) }; }
+        if (t.type === "LPAREN") {
+          consume();
+          const expr = parseEqv();
+          if (peek()?.type !== "RPAREN") throw new Error("Sluitend haakje ) ontbreekt");
+          consume();
+          // strip outer parens from label if already wrapped
+          return expr;
+        }
+        throw new Error(`Onverwacht teken: '${t.val || t.type}'`);
+      }
 
-function insertSymbol(sym) {
-if (!inputRef) { setFormula(f => f + sym); return; }
-const start = inputRef.selectionStart;
-const end = inputRef.selectionEnd;
-const newVal = formula.slice(0, start) + sym + formula.slice(end);
-setFormula(newVal);
-setTimeout(() => {
-inputRef.setSelectionRange(start + sym.length, start + sym.length);
-inputRef.focus();
-}, 0);
-}
+      const result = parseEqv();
+      if (pos < tokens.length) throw new Error("Onverwacht teken na formule");
+      return result;
+    }
 
-const stats = useMemo(() => {
-if (!result || result.error) return null;
-const ones = result.table.filter(r => r.result === 1).length;
-const total = result.table.length;
-const type = ones === total ? "tautology" : ones === 0 ? "contradiction" : "contingency";
-return { ones, zeros: total - ones, total, type };
-}, [result]);
+    // ─── Collect subformulas in evaluation order (bottom-up) ─────
+    // Returns ordered list of unique non-trivial subformulas
+    function collectSubformulas(node, result = [], seen = new Set()) {
+      if (!node) return result;
+      // recurse children first (bottom-up)
+      if (node.child) collectSubformulas(node.child, result, seen);
+      if (node.left)  collectSubformulas(node.left,  result, seen);
+      if (node.right) collectSubformulas(node.right, result, seen);
+      // add this node if it's not a plain variable and not already added
+      if (node.type !== "VAR" && node.type !== "LIT" && !seen.has(node.label)) {
+        seen.add(node.label);
+        result.push(node);
+      }
+      return result;
+    }
 
-return (
-<>
+    // ─── Evaluator ───────────────────────────────────────────────
+    function evaluate(node, env) {
+      switch (node.type) {
+        case "VAR": return env[node.val];
+        case "LIT": return node.val;
+        case "NOT": return evaluate(node.child, env) === 1 ? 0 : 1;
+        case "AND": return evaluate(node.left, env) === 1 && evaluate(node.right, env) === 1 ? 1 : 0;
+        case "OR":  return evaluate(node.left, env) === 1 || evaluate(node.right, env) === 1 ? 1 : 0;
+        case "IMP": return evaluate(node.left, env) === 0 || evaluate(node.right, env) === 1 ? 1 : 0;
+        case "EQV": return evaluate(node.left, env) === evaluate(node.right, env) ? 1 : 0;
+      }
+    }
 
+    function extractVars(formula) {
+      const vars = new Set();
+      for (const ch of formula) if (/[a-zA-Z]/.test(ch)) vars.add(ch);
+      return [...vars].sort();
+    }
 
-Truth Table Solver
+    // ─── Main solve ──────────────────────────────────────────────
+    function solve() {
+      hideError();
+      const formula = input.value.trim();
+      if (!formula) return;
 
-Logische uitspraken · Waarheidstabellen
+      let vars, subformulas, ast, table;
+      try {
+        const tokens = tokenize(formula);
+        ast = parse(tokens);
+        vars = extractVars(formula);
+        subformulas = collectSubformulas(ast);
 
+        const n = vars.length;
+        const rows = 1 << n;
+        table = [];
+        for (let i = 0; i < rows; i++) {
+          const env = {};
+          vars.forEach((v, idx) => { env[v] = (i >> idx) & 1; });
+          const subValues = {};
+          subformulas.forEach(sf => { subValues[sf.label] = evaluate(sf, env); });
+          table.push({ env, subValues, result: evaluate(ast, env) });
+        }
+      } catch(e) {
+        showError(e.message);
+        return;
+      }
 
+      // ─── Build table HTML ──────────────────────────────────────
+      const rootLabel = ast.label;
+      // intermediate = all subformulas except the root
+      const intermediate = subformulas.filter(sf => sf.label !== rootLabel);
 
-{SYMBOLS.map(s => (
-insertSymbol(s.insert)}>
-{s.sym}
-{s.label && {s.label}}
+      let html = `<div class="table-wrap"><table><thead><tr>`;
+      // Variable columns
+      vars.forEach(v => { html += `<th class="var-col">${v}</th>`; });
+      // Intermediate step columns
+      intermediate.forEach((sf, i) => {
+        const divClass = i === 0 ? ' divider-th' : '';
+        html += `<th class="sub-col${divClass}">${sf.label}</th>`;
+      });
+      // Final result column
+      html += `<th class="result-col">${rootLabel}</th>`;
+      html += `</tr></thead><tbody>`;
 
-))}
+      table.forEach(row => {
+        html += "<tr>";
+        // Variables
+        vars.forEach(v => {
+          html += `<td class="${row.env[v] === 1 ? 'val-1' : 'val-0'}">${row.env[v]}</td>`;
+        });
+        // Intermediate steps
+        intermediate.forEach((sf, i) => {
+          const val = row.subValues[sf.label];
+          const divClass = i === 0 ? ' divider-td' : '';
+          html += `<td class="${divClass} ${val === 1 ? 'val-1' : 'val-0'}">${val}</td>`;
+        });
+        // Final result
+        html += `<td class="result-td ${row.result === 1 ? 'val-1' : 'val-0'}">${row.result}</td>`;
+        html += "</tr>";
+      });
 
+      html += "</tbody></table></div>";
+      document.getElementById("tableWrap").innerHTML = html;
 
-
-Typ variabelen als letters: p, q, r, ...  | 
-Alternatief: & = ∧, | = ∨, ~ = ¬, -{'>'} = →, {'<->'} = ↔
-
-
-
-setInputRef(r)}
-className={`formula-input${error ? " error" : ""}`}
-value={formula}
-onChange={e => { setFormula(e.target.value); setError(""); }}
-onKeyDown={e => e.key === "Enter" && handleSolve()}
-placeholder="bijv. (p ∧ q) → ¬r"
-/>
-Oplossen
-{ setFormula(""); setSubmitted(""); setError(""); }}>Wis
-
-
-{error &&
-⚠ {error}
-}
-
-{result && !result.error && (
-<>
-
-{v}	{submitted}
-
-{row.env[v]}
-
-{row.result}
-
-
-
-{stats && (
-
-
-Rijen
-
-{stats.total}
-
-
-
-Uitkomst 1
-
-{stats.ones}
-
-
-
-Uitkomst 0
-
-{stats.zeros}
-
-
-
-Type
-
-
-{stats.type === "tautology" ? "Tautologie" : stats.type === "contradiction" ? "Contradictie" : "Contingentie"}
-
-
-
-)}
->
-)}
-
-{result?.error &&
-⚠ {result.error}
-}
-
->
-);
+      // ─── Stats ─────────────────────────────────────────────────
+      const ones = table.filter(r => r.result === 1).length;
+      const total = table.length;
+      const type = ones === total ? "tautology" : ones === 0 ? "contradiction" : "contingency";
+      const typeNL = type === "tautology" ? "Tautologie" : type === "contradiction" ? "Contradictie" : "Contingentie";
+      const typeClass = type === "tautology" ? "taut" : type === "contradiction" ? "contra" : "conting";
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><div class="stat-label">Rijen</div><div class="stat-val">${total}</div></div>
+        <div class="stat"><div class="stat-label">Stappen</div><div class="stat-val">${subformulas.length}</div></div>
+        <div class="stat"><div class="stat-label">Uitkomst 1</div><div class="stat-val taut">${ones}</div></div>
+        <div class="stat"><div class="stat-label">Uitkomst 0</div><div class="stat-val contra">${total - ones}</div></div>
+        <div class="stat"><div class="stat-label">Type</div><div class="stat-val ${typeClass}">${typeNL}</div></div>
+      `;
+    }
+  </script>
+</body>
+</html>
+```
+<function_calls>
+<invoke name="bash_tool">
+<parameter name="description">Copy to outputs
