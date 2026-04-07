@@ -1,470 +1,600 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Truth Table Solver</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #0a0a0f;
-      color: #e8e8f0;
-      font-family: 'JetBrains Mono', monospace;
-      padding: 24px 16px;
-      min-height: 100vh;
-    }
-    h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #a78bfa, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 4px;
-    }
-    .subtitle {
-      font-size: 0.72rem;
-      color: #555570;
-      margin-bottom: 24px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .formula-input {
-      flex: 1;
-      min-width: 200px;
-      background: #13131f;
-      border: 1px solid #2a2a40;
-      border-radius: 8px;
-      color: #e8e8f0;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1rem;
-      padding: 10px 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .formula-input:focus { border-color: #a78bfa; }
-    .formula-input.error { border-color: #f87171; }
-    .btn {
-      background: linear-gradient(135deg, #a78bfa, #38bdf8);
-      border: none;
-      border-radius: 8px;
-      color: #0a0a0f;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.85rem;
-      padding: 10px 20px;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
-    .btn-clear {
-      background: #1e1e2e;
-      border: 1px solid #2a2a40;
-      color: #888;
-    }
-    .btn-clear:hover { border-color: #555; color: #ccc; }
-    .symbols {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 20px;
-    }
-    .sym-btn {
-      background: #13131f;
-      border: 1px solid #2a2a40;
-      border-radius: 6px;
-      color: #a78bfa;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
-      padding: 5px 10px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .sym-btn:hover { background: #1e1e30; border-color: #a78bfa; color: #c4b5fd; }
-    .sym-label {
-      font-size: 0.65rem;
-      color: #444460;
-      display: block;
-      text-align: center;
-      margin-top: 2px;
-    }
-    .error-msg {
-      color: #f87171;
-      font-size: 0.78rem;
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      background: #1f0f0f;
-      border-radius: 6px;
-      border-left: 3px solid #f87171;
-    }
-    .table-wrap {
-      overflow-x: auto;
-      border-radius: 10px;
-      border: 1px solid #1e1e30;
-      margin-top: 16px;
-    }
-    table {
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-    thead tr { background: #13131f; }
-    th {
-      padding: 10px 14px;
-      text-align: center;
-      font-weight: 700;
-      border-bottom: 2px solid #2a2a40;
-      white-space: nowrap;
-      border-right: 1px solid #1e1e30;
-    }
-    th:last-child { border-right: none; }
-    th.var-col { color: #38bdf8; }
-    th.sub-col { color: #94a3b8; font-size: 0.75rem; }
-    th.result-col {
-      color: #a78bfa;
-      background: #16163a;
-      border-left: 2px solid #a78bfa44;
-    }
-    td {
-      padding: 8px 14px;
-      text-align: center;
-      border-bottom: 1px solid #12121e;
-      border-right: 1px solid #0f0f1e;
-    }
-    td:last-child { border-right: none; }
-    tr:last-child td { border-bottom: none; }
-    tr:nth-child(even) { background: #0d0d18; }
-    tr:hover td { background: #15152a; }
-    .val-0 { color: #f87171; font-weight: 700; }
-    .val-1 { color: #4ade80; font-weight: 700; }
-    .result-td {
-      background: #11113a !important;
-      border-left: 2px solid #a78bfa44 !important;
-    }
-    tr:nth-child(even) .result-td { background: #0e0e30 !important; }
-    tr:hover .result-td { background: #14144a !important; }
-    .divider-th {
-      border-left: 2px solid #2a2a50 !important;
-    }
-    .divider-td {
-      border-left: 2px solid #1a1a35 !important;
-    }
-    .stats {
-      display: flex;
-      gap: 12px;
-      margin-top: 14px;
-      flex-wrap: wrap;
-    }
-    .stat {
-      background: #13131f;
-      border: 1px solid #1e1e30;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 0.75rem;
-    }
-    .stat-label { color: #555570; text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem; }
-    .stat-val { color: #e8e8f0; font-size: 1rem; font-weight: 700; margin-top: 2px; }
-    .taut { color: #4ade80; }
-    .contra { color: #f87171; }
-    .conting { color: #fbbf24; }
-    .hint { font-size: 0.72rem; color: #444460; margin-bottom: 16px; line-height: 1.6; }
-    .hint span { color: #6060a0; }
-    .step-legend {
-      margin-top: 10px;
-      font-size: 0.7rem;
-      color: #444460;
-    }
-    .step-legend span { color: #6060a0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anime Spheres</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;font-family:'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:14px;gap:10px}
+#title{font-family:'Bangers',cursive;font-size:32px;letter-spacing:4px;color:#FAC775;text-shadow:2px 2px 0 #412402}
+#matchup-lbl{font-family:'Bangers',cursive;font-size:22px;letter-spacing:2px;color:#888}
+#arena-wrap{position:relative;width:360px;height:360px;border:7px solid #444441;border-radius:4px;overflow:hidden}
+canvas{display:block}
+#msg{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:'Bangers',cursive;font-size:38px;color:#FAC775;text-shadow:3px 3px 0 #000;pointer-events:none;opacity:0;z-index:9;letter-spacing:3px;white-space:nowrap;transition:opacity .15s}
+#ov{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,20,.82);z-index:10;padding:12px;gap:5px}
+#ov h2{font-family:'Bangers',cursive;font-size:32px;color:#FAC775;letter-spacing:3px}
+#ov p{color:#aaa;font-size:12px;text-align:center;max-width:300px}
+.pcol{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pcol>span{color:#666;font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.pgrid{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:155px}
+.pb{font-family:'Bangers',cursive;font-size:11px;padding:4px 8px;border-radius:5px;border:2.5px solid transparent;cursor:pointer;color:#fff;letter-spacing:1px;transition:opacity .1s}
+.pb:hover{opacity:.9}
+.pb.sel{border-color:#fff!important}
+#fight-btn{font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;padding:9px 36px;background:#E24B4A;color:#fff;border:none;border-radius:7px;cursor:pointer;margin-top:8px}
+#fight-btn:hover{background:#A32D2D}
+#bottom{width:360px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ccard{background:#16213e;border:1px solid #333;border-radius:9px;padding:8px 10px}
+.ccard.right{text-align:right}
+.cname{font-family:'Bangers',cursive;font-size:15px;letter-spacing:1px}
+.hpwrap{height:8px;background:#333;border-radius:4px;margin:4px 0}
+.hpbar{height:8px;border-radius:4px;transition:width .08s}
+.hpbar.right{margin-left:auto}
+.stxt{font-size:11px;color:#666;margin-bottom:4px}
+.abrow{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.abrow.right{justify-content:flex-end}
+.ptag{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;cursor:default;user-select:none}
+.spbtn{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:700;cursor:pointer;border:none;position:relative;overflow:hidden;color:#fff;transition:transform .1s}
+.spbtn:not(:disabled):hover{transform:scale(1.05)}
+.spbtn:disabled{opacity:.4;cursor:not-allowed}
+.cdover{position:absolute;left:0;top:0;height:100%;background:rgba(0,0,0,.5);pointer-events:none;transition:width .1s}
+</style>
 </head>
 <body>
-
-  <h1>Truth Table Solver</h1>
-  <div class="subtitle">Logische uitspraken · Waarheidstabellen · Stap voor stap</div>
-
-  <div class="symbols" id="symbols"></div>
-
-  <div class="hint">
-    Typ variabelen als letters: <span>p, q, r, ...</span> &nbsp;|&nbsp;
-    Alternatief: <span>&amp; = ∧</span>, <span>| = ∨</span>, <span>~ = ¬</span>, <span>-&gt; = →</span>, <span>&lt;-&gt; = ↔</span>
+<div id="title">ANIME SPHERES</div>
+<div id="matchup-lbl">Select your fighters</div>
+<div id="arena-wrap">
+  <canvas id="cv" width="360" height="360"></canvas>
+  <div id="msg"></div>
+  <div id="ov">
+    <h2>ANIME SPHERES</h2>
+    <p>10x HP &bull; Animated specials &bull; Click <b style="color:#FAC775">[E]</b> button to use your special attack</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+      <div class="pcol"><span>Player 1</span><div class="pgrid" id="pg1"></div></div>
+      <div class="pcol"><span>Player 2</span><div class="pgrid" id="pg2"></div></div>
+    </div>
+    <button id="fight-btn" onclick="startGame()">FIGHT!</button>
   </div>
-
-  <div class="input-row">
-    <input id="formulaInput" class="formula-input" placeholder="bijv.  (s→¬p)→(¬t∨v)" />
-    <button class="btn" onclick="solve()">Oplossen</button>
-    <button class="btn btn-clear" onclick="clearAll()">Wis</button>
+</div>
+<div id="bottom">
+  <div class="ccard">
+    <div class="cname" id="cn1">—</div>
+    <div class="hpwrap"><div class="hpbar" id="hb1" style="width:100%"></div></div>
+    <div class="stxt" id="hs1">HP: —</div>
+    <div class="abrow" id="ab1"></div>
   </div>
+  <div class="ccard right">
+    <div class="cname" id="cn2">—</div>
+    <div class="hpwrap"><div class="hpbar right" id="hb2" style="width:100%"></div></div>
+    <div class="stxt" id="hs2">HP: —</div>
+    <div class="abrow right" id="ab2"></div>
+  </div>
+</div>
 
-  <div id="errorMsg" class="error-msg" style="display:none"></div>
-  <div id="tableWrap"></div>
-  <div id="stats" class="stats"></div>
+<script>
+const W=360,H=360;
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
 
-  <script>
-    const SYMBOLS = [
-      { sym: "¬", label: "NOT" },
-      { sym: "∧", label: "AND" },
-      { sym: "∨", label: "OR" },
-      { sym: "→", label: "IMP" },
-      { sym: "↔", label: "EQV" },
-      { sym: "(",  label: "" },
-      { sym: ")",  label: "" },
-    ];
+const CHARS=[
+  {id:'naruto',label:'Naruto',color:'#EF9F27',out:'#633806',sym:'N',
+   maxHp:1200,spd:3.2,rad:22,
+   pName:'Shadow Clone',pDesc:'Auto-spawns clones that chase the enemy',pCol:'#FAC775',pTxt:'#412402',
+   sName:'Rasengan',sDesc:'Spiraling burst — deals 280 damage on contact',sCol:'#EF9F27',sTxt:'#412402',sCd:320},
 
-    const symContainer = document.getElementById("symbols");
-    const input = document.getElementById("formulaInput");
+  {id:'sasuke',label:'Sasuke',color:'#7F77DD',out:'#26215C',sym:'S',
+   maxHp:1000,spd:3.8,rad:20,
+   pName:'Sharingan',pDesc:'Occasionally phases through hits (dodge)',pCol:'#AFA9EC',pTxt:'#26215C',
+   sName:'Chidori',sDesc:'Lightning lunge — 320 piercing damage',sCol:'#7F77DD',sTxt:'#CECBF6',sCd:260},
 
-    SYMBOLS.forEach(({ sym, label }) => {
-      const btn = document.createElement("button");
-      btn.className = "sym-btn";
-      btn.innerHTML = sym + (label ? `<span class="sym-label">${label}</span>` : "");
-      btn.onclick = () => {
-        const start = input.selectionStart;
-        const end = input.selectionEnd;
-        input.value = input.value.slice(0, start) + sym + input.value.slice(end);
-        input.focus();
-        input.setSelectionRange(start + sym.length, start + sym.length);
+  {id:'goku',label:'Goku',color:'#5DCAA5',out:'#04342C',sym:'G',
+   maxHp:1600,spd:2.8,rad:26,
+   pName:'Zenkai Boost',pDesc:'Slowly heals when HP falls below 30%',pCol:'#9FE1CB',pTxt:'#04342C',
+   sName:'Kamehameha',sDesc:'Focused beam — 260 damage with long reach',sCol:'#5DCAA5',sTxt:'#04342C',sCd:350},
+
+  {id:'luffy',label:'Luffy',color:'#D4537E',out:'#4B1528',sym:'L',
+   maxHp:1400,spd:3.0,rad:24,
+   pName:'Rubber Body',pDesc:'Each wall bounce stores bonus collision damage',pCol:'#F4C0D1',pTxt:'#4B1528',
+   sName:'Gear 4th',sDesc:'Grow in size, speed x1.7, and collision damage x1.6',sCol:'#D4537E',sTxt:'#F4C0D1',sCd:400},
+
+  {id:'ichigo',label:'Ichigo',color:'#888780',out:'#2C2C2A',sym:'I',
+   maxHp:1300,spd:3.5,rad:21,
+   pName:'Bankai',pDesc:'Attack power slowly scales up over the fight',pCol:'#D3D1C7',pTxt:'#2C2C2A',
+   sName:'Getsuga',sDesc:'Fires 3 crescent slashes (200 / 160 / 120 dmg)',sCol:'#444441',sTxt:'#F1EFE8',sCd:240},
+
+  {id:'vegeta',label:'Vegeta',color:'#D85A30',out:'#4A1B0C',sym:'V',
+   maxHp:1100,spd:3.6,rad:21,
+   pName:'Saiyan Pride',pDesc:'Attack multiplier increases as HP drops',pCol:'#F5C4B3',pTxt:'#4A1B0C',
+   sName:'Final Flash',sDesc:'Charges then fires a massive 380-damage beam',sCol:'#D85A30',sTxt:'#F5C4B3',sCd:360},
+];
+
+let p1idx=0,p2idx=1,state=null,running=false,raf=null;
+let parts=[],projs=[],clones=[],vfx=[];
+
+function buildPicks(){
+  ['pg1','pg2'].forEach((gid,pi)=>{
+    const el=document.getElementById(gid);el.innerHTML='';
+    CHARS.forEach((c,i)=>{
+      const b=document.createElement('button');
+      b.className='pb'+((pi===0?p1idx:p2idx)===i?' sel':'');
+      b.style.background=c.color;b.textContent=c.sym+' '+c.label;
+      b.onclick=()=>{
+        if(pi===0)p1idx=i; else p2idx=i;
+        el.querySelectorAll('.pb').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
       };
-      symContainer.appendChild(btn);
+      el.appendChild(b);
     });
+  });
+}
+buildPicks();
 
-    input.addEventListener("keydown", e => { if (e.key === "Enter") solve(); });
+function mkSphere(def,x,y,isP2,cidx){
+  return{
+    x,y,vx:(isP2?-1:1)*(def.spd*0.5+Math.random()*.6),vy:(Math.random()-.5)*1.5,
+    rad:def.rad,baseRad:def.rad,color:def.color,out:def.out,sym:def.sym,
+    hp:def.maxHp,maxHp:def.maxHp,spd:def.spd,atk:1,
+    cidx,isP2,spCd:80,spMaxCd:def.sCd,
+    dodging:0,gearMode:0,born:Date.now(),hitFlash:0,dnums:[],bbonus:0,ang:0
+  };
+}
 
-    function showError(msg) {
-      const el = document.getElementById("errorMsg");
-      el.textContent = "⚠ " + msg;
-      el.style.display = "block";
-      input.classList.add("error");
+function startGame(){
+  if(p1idx===p2idx)p2idx=(p1idx+1)%CHARS.length;
+  const d1=CHARS[p1idx],d2=CHARS[p2idx];
+  document.getElementById('matchup-lbl').textContent=d1.label+' VS '+d2.label;
+  document.getElementById('matchup-lbl').style.color=d1.color;
+  parts=[];projs=[];clones=[];vfx=[];
+  const s1=mkSphere(d1,70,180,false,p1idx);
+  const s2=mkSphere(d2,290,180,true,p2idx);
+  state={s1,s2};
+  buildBottomUI(s1,d1,s2,d2);
+  document.getElementById('ov').style.display='none';
+  running=true;if(raf)cancelAnimationFrame(raf);loop();
+}
+
+function buildBottomUI(s1,d1,s2,d2){
+  ['1','2'].forEach(n=>{
+    const s=n==='1'?s1:s2,d=n==='1'?d1:d2;
+    document.getElementById('cn'+n).textContent=d.sym+' '+d.label;
+    document.getElementById('cn'+n).style.color=d.color;
+    document.getElementById('hb'+n).style.background=d.color;
+    const ab=document.getElementById('ab'+n);ab.innerHTML='';
+    const pt=document.createElement('span');
+    pt.className='ptag';pt.style.background=d.pCol;pt.style.color=d.pTxt;
+    pt.title=d.pDesc;pt.textContent='[P] '+d.pName;ab.appendChild(pt);
+    const sb=document.createElement('button');
+    sb.className='spbtn';sb.id='spbtn'+n;sb.style.background=d.sCol;sb.style.color=d.sTxt;
+    sb.title=d.sDesc;
+    const cdov=document.createElement('div');cdov.className='cdover';cdov.id='cdov'+n;
+    sb.appendChild(cdov);
+    sb.appendChild(document.createTextNode('[E] '+d.sName));
+    const sRef=s,eRef=n==='1'?()=>state.s2:()=>state.s1;
+    sb.onclick=()=>{ if(running&&sRef.spCd<=0)fireSpecial(sRef,eRef()); };
+    ab.appendChild(sb);
+  });
+}
+
+function loop(){if(!running)return;update();draw();raf=requestAnimationFrame(loop);}
+
+function update(){
+  const{s1,s2}=state;
+  updSphere(s1,s2);updSphere(s2,s1);checkColl(s1,s2);
+  updProjs(s1,s2);updClones(s1,s2);
+  parts=parts.filter(p=>{p.life--;p.x+=p.vx;p.y+=p.vy;p.vy+=.12;return p.life>0;});
+  vfx=vfx.filter(v=>{v.life--;return v.life>0;});
+  updUI(s1,s2);
+  if(s1.hp<=0||s2.hp<=0)endGame(s1,s2);
+}
+
+function updSphere(s,e){
+  s.ang+=.032;
+  if(s.dodging>0){s.dodging--;s.x+=s.vx*.15;s.y+=s.vy*.15;bnc(s);return;}
+  if(s.gearMode>0)s.gearMode--;
+  const sp=s.gearMode>0?s.spd*1.7:s.spd;
+  const dx=e.x-s.x,dy=e.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+  s.vx+=dx/d*.07;s.vy+=dy/d*.07;
+  const m=Math.sqrt(s.vx*s.vx+s.vy*s.vy)||1;
+  if(m>sp){s.vx=s.vx/m*sp;s.vy=s.vy/m*sp;}
+  s.x+=s.vx;s.y+=s.vy;bnc(s);
+  if(s.spCd>0)s.spCd--;
+  s.dnums=s.dnums.filter(dn=>{dn.life--;dn.y-=.9;dn.a=dn.life/35;return dn.life>0;});
+  if(s.hitFlash>0)s.hitFlash--;
+  passiveTick(s,e);
+}
+
+function passiveTick(s,e){
+  const id=CHARS[s.cidx].id;
+  if(id==='naruto'&&Math.random()<.005)spawnClone(s,e);
+  if(id==='sasuke'&&Math.random()<.007){
+    s.dodging=14;
+    vfx.push({type:'dodge',x:s.x,y:s.y,life:15,maxLife:15,color:s.color});
+  }
+  if(id==='goku'&&s.hp<s.maxHp*.3&&Math.random()<.004){
+    s.hp=Math.min(s.maxHp,s.hp+6);
+    spawnParts(s.x,s.y,s.color,3);
+  }
+  if(id==='ichigo')s.atk=1+Math.min(2.5,(Date.now()-s.born)/25000);
+  if(id==='vegeta')s.atk=1+(1-s.hp/s.maxHp)*2;
+}
+
+function fireSpecial(s,e){
+  if(s.spCd>0)return;
+  s.spCd=s.spMaxCd;
+  const id=CHARS[s.cidx].id;
+  if(id==='naruto')specRasengan(s,e);
+  else if(id==='sasuke')specChidori(s,e);
+  else if(id==='goku')specKamehameha(s,e);
+  else if(id==='luffy')specGear4(s,e);
+  else if(id==='ichigo')specGetsuga(s,e);
+  else if(id==='vegeta')specFinalFlash(s,e);
+}
+
+function specRasengan(s,e){
+  flashMsg('RASENGAN!!');
+  const ox=s.x,oy=s.y;
+  vfx.push({type:'spiral',ox,oy,tx:e.x,ty:e.y,life:40,maxLife:40,color:s.color});
+  let t=0;
+  const iv=setInterval(()=>{
+    t++;const prog=Math.min(1,t/32);
+    const cx=ox+(e.x-ox)*prog,cy=oy+(e.y-oy)*prog;
+    spawnParts(cx,cy,s.color,6);
+    if(t>=32){clearInterval(iv);dealDmg(e,280,s.color);spawnParts(e.x,e.y,s.color,24);}
+  },16);
+}
+
+function specChidori(s,e){
+  flashMsg('CHIDORI!!');
+  const ox=s.x,oy=s.y,dx=e.x-s.x,dy=e.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+  vfx.push({type:'lightning',x:ox,y:oy,tx:e.x,ty:e.y,life:22,maxLife:22,color:'#AFA9EC'});
+  let t=0;
+  const iv=setInterval(()=>{
+    t++;
+    s.x=ox+dx/d*t*5.5;s.y=oy+dy/d*t*5.5;
+    spawnParts(s.x,s.y,'#AFA9EC',5);
+    const dist=Math.sqrt((s.x-e.x)**2+(s.y-e.y)**2);
+    if(t>=9||dist<s.rad+e.rad){
+      clearInterval(iv);
+      dealDmg(e,320,s.color);
+      s.vx=-dx/d*5;s.vy=-dy/d*5;
+      spawnParts(e.x,e.y,'#AFA9EC',20);
     }
-    function hideError() {
-      document.getElementById("errorMsg").style.display = "none";
-      input.classList.remove("error");
+  },16);
+}
+
+function specKamehameha(s,e){
+  flashMsg('KAMEHAMEHA!!');
+  const dx=e.x-s.x,dy=e.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+  vfx.push({type:'beam',x:s.x,y:s.y,tx:e.x,ty:e.y,life:50,maxLife:50,color:'#5DCAA5',bw:22});
+  let t=0;
+  const iv=setInterval(()=>{
+    t++;
+    const px=s.x+dx/d*t*8,py=s.y+dy/d*t*8;
+    spawnParts(px,py,'#9FE1CB',3);
+    if(Math.sqrt((px-e.x)**2+(py-e.y)**2)<e.rad+14||t>22){
+      clearInterval(iv);dealDmg(e,260,s.color);spawnParts(e.x,e.y,'#5DCAA5',22);
     }
-    function clearAll() {
-      input.value = "";
-      hideError();
-      document.getElementById("tableWrap").innerHTML = "";
-      document.getElementById("stats").innerHTML = "";
+  },20);
+}
+
+function specGear4(s,e){
+  flashMsg('GEAR FOURTH!!');
+  s.gearMode=300;
+  const oldR=s.rad;s.rad=Math.round(s.baseRad*1.45);
+  vfx.push({type:'burst',x:s.x,y:s.y,life:30,maxLife:30,color:s.color,br:s.rad});
+  for(let i=0;i<18;i++){
+    const a=(i/18)*Math.PI*2;
+    parts.push({x:s.x,y:s.y,vx:Math.cos(a)*8,vy:Math.sin(a)*8-1,life:32,color:'#D4537E',size:5});
+  }
+  setTimeout(()=>{s.rad=s.baseRad;},5000);
+}
+
+function specGetsuga(s,e){
+  flashMsg('GETSUGA TENSHO!!');
+  const dx=e.x-s.x,dy=e.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+  const base=Math.atan2(dy,dx);
+  [[0,200],[-.3,160],[.3,120]].forEach(([off,dmg])=>{
+    const ang=base+off;
+    projs.push({x:s.x,y:s.y,vx:Math.cos(ang)*6.5,vy:Math.sin(ang)*6.5,
+      rad:12,dmg,color:'#B4B2A9',life:115,owner:s,type:'cres',rot:ang,off});
+  });
+}
+
+function specFinalFlash(s,e){
+  flashMsg('FINAL FLASH!!');
+  vfx.push({type:'charge',owner:s,life:28,maxLife:28,color:'#D85A30'});
+  setTimeout(()=>{
+    const dx=e.x-s.x,dy=e.y-s.y,d2=Math.sqrt(dx*dx+dy*dy)||1;
+    vfx.push({type:'beam',x:s.x,y:s.y,tx:e.x,ty:e.y,life:55,maxLife:55,color:'#D85A30',bw:30});
+    let t=0;
+    const iv=setInterval(()=>{
+      t++;
+      const px=s.x+dx/d2*t*9,py=s.y+dy/d2*t*9;
+      spawnParts(px,py,'#D85A30',4);
+      if(Math.sqrt((px-e.x)**2+(py-e.y)**2)<e.rad+18||t>22){
+        clearInterval(iv);dealDmg(e,380,s.color);spawnParts(e.x,e.y,'#EF9F27',28);
+      }
+    },20);
+  },450);
+}
+
+function bnc(s){
+  const r=s.rad,isL=CHARS[s.cidx].id==='luffy';
+  if(s.x-r<0){s.x=r;s.vx=Math.abs(s.vx);if(isL)s.bbonus++;}
+  if(s.x+r>W){s.x=W-r;s.vx=-Math.abs(s.vx);if(isL)s.bbonus++;}
+  if(s.y-r<0){s.y=r;s.vy=Math.abs(s.vy);if(isL)s.bbonus++;}
+  if(s.y+r>H){s.y=H-r;s.vy=-Math.abs(s.vy);if(isL)s.bbonus++;}
+}
+
+function checkColl(s1,s2){
+  const dx=s2.x-s1.x,dy=s2.y-s1.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+  const mn=s1.rad+s2.rad;
+  if(d<mn){
+    const nx=dx/d,ny=dy/d,ov=(mn-d)/2;
+    s1.x-=nx*ov;s1.y-=ny*ov;s2.x+=nx*ov;s2.y+=ny*ov;
+    const rv=(s1.vx-s2.vx)*nx+(s1.vy-s2.vy)*ny;
+    if(rv>0){s1.vx-=rv*nx*1.1;s1.vy-=rv*ny*1.1;s2.vx+=rv*nx*1.1;s2.vy+=rv*ny*1.1;}
+    const base=5+Math.abs(rv)*1.8;
+    const d1=(base*(s2.atk||1)+(s2.bbonus||0)*10)*(s2.gearMode>0?1.6:1);
+    const d2=(base*(s1.atk||1)+(s1.bbonus||0)*10)*(s1.gearMode>0?1.6:1);
+    dealDmg(s1,d1,s2.color);dealDmg(s2,d2,s1.color);
+    s1.bbonus=0;s2.bbonus=0;
+    spawnParts((s1.x+s2.x)/2,(s1.y+s2.y)/2,'#fff',12);
+  }
+}
+
+function dealDmg(s,dmg,col){
+  const v=Math.round(dmg);
+  s.hp=Math.max(0,s.hp-v);s.hitFlash=7;
+  s.dnums.push({x:s.x+(Math.random()-.5)*22,y:s.y-s.rad-4,val:v,life:35,a:1});
+}
+
+function updProjs(s1,s2){
+  projs=projs.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.life--;
+    const tgt=p.owner===s1?s2:s1;
+    if((p.x-tgt.x)**2+(p.y-tgt.y)**2<(tgt.rad+p.rad)**2){
+      dealDmg(tgt,p.dmg,p.color);spawnParts(p.x,p.y,p.color,10);return false;
     }
+    return p.life>0&&p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30;
+  });
+}
 
-    // ─── Tokenizer ───────────────────────────────────────────────
-    function tokenize(formula) {
-      const tokens = [];
-      let i = 0;
-      while (i < formula.length) {
-        const ch = formula[i];
-        if (/\s/.test(ch)) { i++; continue; }
-        if (/[a-zA-Z]/.test(ch)) { tokens.push({ type: "VAR", val: ch }); i++; continue; }
-        if (ch === "¬" || ch === "~" || ch === "!") { tokens.push({ type: "NOT" }); i++; continue; }
-        if (ch === "∧" || ch === "&") { tokens.push({ type: "AND" }); i++; continue; }
-        if (ch === "∨" || ch === "|") { tokens.push({ type: "OR" }); i++; continue; }
-        if (ch === "→") { tokens.push({ type: "IMP" }); i++; continue; }
-        if (ch === "-" && formula[i+1] === ">") { tokens.push({ type: "IMP" }); i += 2; continue; }
-        if (ch === "↔") { tokens.push({ type: "EQV" }); i++; continue; }
-        if (ch === "<" && formula[i+1] === "-" && formula[i+2] === ">") { tokens.push({ type: "EQV" }); i += 3; continue; }
-        if (ch === "(") { tokens.push({ type: "LPAREN" }); i++; continue; }
-        if (ch === ")") { tokens.push({ type: "RPAREN" }); i++; continue; }
-        if (ch === "0" || ch === "1") { tokens.push({ type: "LIT", val: +ch }); i++; continue; }
-        throw new Error(`Onbekend symbool: '${ch}'`);
-      }
-      return tokens;
+function updClones(s1,s2){
+  clones=clones.filter(cl=>{
+    cl.life--;
+    const dx=s2.x-cl.x,dy=s2.y-cl.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+    cl.vx+=dx/d*.055;cl.vy+=dy/d*.055;
+    const m=Math.sqrt(cl.vx*cl.vx+cl.vy*cl.vy)||1;
+    if(m>2.9){cl.vx=cl.vx/m*2.9;cl.vy=cl.vy/m*2.9;}
+    cl.x+=cl.vx;cl.y+=cl.vy;
+    cl.x=Math.max(cl.r,Math.min(W-cl.r,cl.x));
+    cl.y=Math.max(cl.r,Math.min(H-cl.r,cl.y));
+    if((cl.x-s2.x)**2+(cl.y-s2.y)**2<(cl.r+s2.rad)**2){
+      dealDmg(s2,45,cl.color);spawnParts(cl.x,cl.y,'#FAC775',6);return false;
     }
+    return cl.life>0;
+  });
+}
 
-    // ─── Parser — builds AST with labels ─────────────────────────
-    function parse(tokens) {
-      let pos = 0;
-      const peek = () => tokens[pos];
-      const consume = () => tokens[pos++];
+function spawnClone(s){
+  clones.push({x:s.x+(Math.random()-.5)*55,y:s.y+(Math.random()-.5)*55,
+    vx:(Math.random()-.5),vy:(Math.random()-.5),r:11,life:240,color:s.color});
+}
 
-      function parseEqv() {
-        let left = parseImp();
-        while (peek()?.type === "EQV") {
-          consume();
-          const right = parseImp();
-          left = { type: "EQV", left, right, label: `(${left.label}↔${right.label})` };
-        }
-        return left;
-      }
-      function parseImp() {
-        let left = parseOr();
-        while (peek()?.type === "IMP") {
-          consume();
-          const right = parseOr();
-          left = { type: "IMP", left, right, label: `(${left.label}→${right.label})` };
-        }
-        return left;
-      }
-      function parseOr() {
-        let left = parseAnd();
-        while (peek()?.type === "OR") {
-          consume();
-          const right = parseAnd();
-          left = { type: "OR", left, right, label: `(${left.label}∨${right.label})` };
-        }
-        return left;
-      }
-      function parseAnd() {
-        let left = parseNot();
-        while (peek()?.type === "AND") {
-          consume();
-          const right = parseNot();
-          left = { type: "AND", left, right, label: `(${left.label}∧${right.label})` };
-        }
-        return left;
-      }
-      function parseNot() {
-        if (peek()?.type === "NOT") {
-          consume();
-          const child = parseNot();
-          return { type: "NOT", child, label: `¬${child.label}` };
-        }
-        return parseAtom();
-      }
-      function parseAtom() {
-        const t = peek();
-        if (!t) throw new Error("Onverwacht einde van formule");
-        if (t.type === "VAR") { consume(); return { type: "VAR", val: t.val, label: t.val }; }
-        if (t.type === "LIT") { consume(); return { type: "LIT", val: t.val, label: String(t.val) }; }
-        if (t.type === "LPAREN") {
-          consume();
-          const expr = parseEqv();
-          if (peek()?.type !== "RPAREN") throw new Error("Sluitend haakje ) ontbreekt");
-          consume();
-          // strip outer parens from label if already wrapped
-          return expr;
-        }
-        throw new Error(`Onverwacht teken: '${t.val || t.type}'`);
-      }
+function spawnParts(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,sp=1+Math.random()*4;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-.8,life:18+Math.random()*18,color,size:1.5+Math.random()*3});
+  }
+}
 
-      const result = parseEqv();
-      if (pos < tokens.length) throw new Error("Onverwacht teken na formule");
-      return result;
+function flashMsg(t){
+  const el=document.getElementById('msg');
+  el.textContent=t;el.style.opacity=1;
+  setTimeout(()=>el.style.opacity=0,750);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#c8c6bc';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<W;i+=40)for(let j=0;j<H;j+=40){
+    ctx.fillStyle='#bfbdb3';ctx.fillRect(i,j,20,20);ctx.fillRect(i+20,j+20,20,20);
+  }
+
+  vfx.forEach(v=>drawVfx(v));
+  ctx.globalAlpha=1;
+
+  clones.forEach(cl=>{
+    ctx.globalAlpha=.5;ctx.fillStyle=cl.color;
+    ctx.beginPath();ctx.arc(cl.x,cl.y,cl.r,0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;
+
+  projs.forEach(p=>drawProj(p));
+
+  parts.forEach(p=>{
+    ctx.globalAlpha=p.life/36;ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;
+
+  drawSphere(state.s1);drawSphere(state.s2);
+
+  [state.s1,state.s2].forEach(s=>{
+    s.dnums.forEach(dn=>{
+      ctx.globalAlpha=dn.a;
+      ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.fillStyle='#501313';
+      ctx.font='bold 13px Nunito';ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.strokeText('-'+dn.val,dn.x,dn.y);ctx.fillText('-'+dn.val,dn.x,dn.y);
+    });ctx.globalAlpha=1;
+  });
+}
+
+function drawVfx(v){
+  const pct=1-v.life/v.maxLife;
+  ctx.save();
+  if(v.type==='beam'){
+    const dx=v.tx-v.x,dy=v.ty-v.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+    const len=d*Math.min(1,pct*2.3);
+    ctx.translate(v.x,v.y);ctx.rotate(Math.atan2(dy,dx));
+    const bw=v.bw||18;
+    ctx.globalAlpha=Math.max(0,1-pct*1.05);
+    ctx.fillStyle=v.color;ctx.fillRect(0,-bw/2,len,bw);
+    ctx.fillStyle='#fff';ctx.fillRect(0,-bw*.18,len,bw*.36);
+    ctx.fillStyle=v.color+'88';ctx.fillRect(0,-bw*.7,len,bw*1.4);
+  }
+  else if(v.type==='lightning'){
+    ctx.globalAlpha=1-pct;
+    for(let pass=0;pass<2;pass++){
+      ctx.strokeStyle=pass===0?'#fff':'#AFA9EC';ctx.lineWidth=pass===0?.8:2.5;
+      ctx.beginPath();ctx.moveTo(v.x,v.y);
+      for(let i=1;i<=8;i++){
+        const t=i/8;
+        ctx.lineTo(v.x+(v.tx-v.x)*t+(Math.random()-.5)*22,v.y+(v.ty-v.y)*t+(Math.random()-.5)*22);
+      }
+      ctx.lineTo(v.tx,v.ty);ctx.stroke();
     }
-
-    // ─── Collect subformulas in evaluation order (bottom-up) ─────
-    // Returns ordered list of unique non-trivial subformulas
-    function collectSubformulas(node, result = [], seen = new Set()) {
-      if (!node) return result;
-      // recurse children first (bottom-up)
-      if (node.child) collectSubformulas(node.child, result, seen);
-      if (node.left)  collectSubformulas(node.left,  result, seen);
-      if (node.right) collectSubformulas(node.right, result, seen);
-      // add this node if it's not a plain variable and not already added
-      if (node.type !== "VAR" && node.type !== "LIT" && !seen.has(node.label)) {
-        seen.add(node.label);
-        result.push(node);
-      }
-      return result;
+  }
+  else if(v.type==='spiral'){
+    const p=1-v.life/v.maxLife;
+    const cx=v.ox+(v.tx-v.ox)*p,cy=v.oy+(v.ty-v.oy)*p;
+    for(let ring=0;ring<3;ring++){
+      ctx.globalAlpha=(.75-ring*.2)*(1-pct*.4);
+      ctx.strokeStyle=v.color;ctx.lineWidth=3.5-ring;
+      ctx.beginPath();ctx.arc(cx,cy,10+ring*9,0,Math.PI*2);ctx.stroke();
     }
-
-    // ─── Evaluator ───────────────────────────────────────────────
-    function evaluate(node, env) {
-      switch (node.type) {
-        case "VAR": return env[node.val];
-        case "LIT": return node.val;
-        case "NOT": return evaluate(node.child, env) === 1 ? 0 : 1;
-        case "AND": return evaluate(node.left, env) === 1 && evaluate(node.right, env) === 1 ? 1 : 0;
-        case "OR":  return evaluate(node.left, env) === 1 || evaluate(node.right, env) === 1 ? 1 : 0;
-        case "IMP": return evaluate(node.left, env) === 0 || evaluate(node.right, env) === 1 ? 1 : 0;
-        case "EQV": return evaluate(node.left, env) === evaluate(node.right, env) ? 1 : 0;
-      }
+    ctx.fillStyle='#fff';ctx.globalAlpha=(1-pct)*.85;
+    ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);ctx.fill();
+  }
+  else if(v.type==='burst'){
+    const rad=v.br+pct*60;
+    ctx.globalAlpha=(1-pct)*.8;ctx.strokeStyle=v.color;ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(v.x,v.y,rad,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.globalAlpha=(1-pct)*.35;
+    ctx.beginPath();ctx.arc(v.x,v.y,rad*.65,0,Math.PI*2);ctx.stroke();
+  }
+  else if(v.type==='charge'){
+    const o=v.owner;
+    for(let i=0;i<10;i++){
+      const a=(i/10)*Math.PI*2+pct*14;
+      const r=o.rad+8+pct*22;
+      ctx.globalAlpha=(1-pct)*.85;ctx.fillStyle=v.color;
+      ctx.beginPath();ctx.arc(o.x+Math.cos(a)*r,o.y+Math.sin(a)*r,4.5,0,Math.PI*2);ctx.fill();
     }
+  }
+  else if(v.type==='dodge'){
+    ctx.globalAlpha=(1-pct)*.65;ctx.strokeStyle=v.color;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(v.x,v.y,22+pct*18,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.restore();ctx.globalAlpha=1;
+}
 
-    function extractVars(formula) {
-      const vars = new Set();
-      for (const ch of formula) if (/[a-zA-Z]/.test(ch)) vars.add(ch);
-      return [...vars].sort();
+function drawProj(p){
+  ctx.save();
+  if(p.type==='cres'){
+    ctx.translate(p.x,p.y);ctx.rotate(p.rot+p.off*.5);
+    ctx.strokeStyle=p.color;ctx.lineWidth=4.5;
+    ctx.beginPath();ctx.arc(0,0,p.rad,.35,Math.PI-.35);ctx.stroke();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.2;ctx.globalAlpha=.5;
+    ctx.beginPath();ctx.arc(0,0,p.rad,.35,Math.PI-.35);ctx.stroke();
+  } else {
+    ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.rad,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.globalAlpha=.4;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.rad*.4,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+function drawSphere(s){
+  const r=s.rad;
+  ctx.save();ctx.translate(s.x,s.y);
+
+  if(s.gearMode>0){
+    const pulse=Math.sin(Date.now()*.015)*.5+.5;
+    ctx.strokeStyle=s.color;ctx.lineWidth=3+pulse;
+    for(let i=0;i<3;i++){
+      ctx.globalAlpha=.25+i*.05;
+      ctx.beginPath();ctx.arc(0,0,r+7+i*8,0,Math.PI*2);ctx.stroke();
+    }ctx.globalAlpha=1;
+  }
+
+  if(s.dodging>0)ctx.globalAlpha=.4;
+
+  ctx.fillStyle=s.hitFlash>0?'#fff':s.color;
+  ctx.strokeStyle=s.out;ctx.lineWidth=3.5;
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+
+  ctx.rotate(s.ang);
+  ctx.fillStyle=s.out+'42';
+  for(let i=0;i<4;i++){
+    const a=(i/4)*Math.PI*2;
+    ctx.beginPath();ctx.arc(Math.cos(a)*r*.55,Math.sin(a)*r*.55,r*.2,0,Math.PI*2);ctx.fill();
+  }
+  ctx.rotate(-s.ang);
+
+  ctx.fillStyle='#ffffffbb';
+  ctx.beginPath();ctx.arc(-r*.28,-r*.28,r*.22,0,Math.PI*2);ctx.fill();
+
+  const def=CHARS[s.cidx];
+  ctx.globalAlpha=1;ctx.fillStyle=def.out;
+  ctx.font=`bold ${Math.round(r*.72)}px Bangers,cursive`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(def.sym,0,1);
+  ctx.restore();
+
+  const hw=r*2.3,hh=8,hx=s.x-hw/2,hy=s.y+r+4;
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(hx,hy,hw,hh);
+  const fr=Math.max(0,s.hp/s.maxHp);
+  ctx.fillStyle=fr>.5?'#1D9E75':fr>.25?'#EF9F27':'#E24B4A';
+  ctx.fillRect(hx,hy,hw*fr,hh);
+  ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1;ctx.strokeRect(hx,hy,hw,hh);
+
+  ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.fillStyle='#111';
+  ctx.font='bold 12px Nunito';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.strokeText(Math.ceil(s.hp),s.x,hy-1);ctx.fillText(Math.ceil(s.hp),s.x,hy-1);
+}
+
+function updUI(s1,s2){
+  [[s1,'1'],[s2,'2']].forEach(([s,n])=>{
+    const fr=Math.max(0,s.hp/s.maxHp);
+    document.getElementById('hb'+n).style.width=(fr*100)+'%';
+    document.getElementById('hs'+n).textContent='HP: '+Math.ceil(s.hp)+' / '+s.maxHp;
+    const btn=document.getElementById('spbtn'+n),cdov=document.getElementById('cdov'+n);
+    if(btn){
+      btn.disabled=s.spCd>0;
+      if(cdov)cdov.style.width=(Math.max(0,s.spCd/s.spMaxCd)*100)+'%';
     }
+  });
+}
 
-    // ─── Main solve ──────────────────────────────────────────────
-    function solve() {
-      hideError();
-      const formula = input.value.trim();
-      if (!formula) return;
+function endGame(s1,s2){
+  running=false;
+  const w=s1.hp>s2.hp?s1:s2;
+  const def=CHARS[w.cidx];
+  const ov=document.getElementById('ov');ov.style.display='flex';
+  ov.innerHTML=`
+    <h2 style="color:${def.color}">${def.sym} ${w.name||def.label} WINS!</h2>
+    <p style="color:#888">${def.label} is victorious &mdash; ${Math.ceil(w.hp)} HP remaining</p>
+    <button onclick="resetMenu()" style="font-family:Bangers,cursive;font-size:20px;letter-spacing:2px;padding:9px 36px;background:#1D9E75;color:#fff;border:none;border-radius:7px;cursor:pointer;margin-top:8px">REMATCH</button>
+  `;
+}
 
-      let vars, subformulas, ast, table;
-      try {
-        const tokens = tokenize(formula);
-        ast = parse(tokens);
-        vars = extractVars(formula);
-        subformulas = collectSubformulas(ast);
-
-        const n = vars.length;
-        const rows = 1 << n;
-        table = [];
-        for (let i = 0; i < rows; i++) {
-          const env = {};
-          vars.forEach((v, idx) => { env[v] = (i >> idx) & 1; });
-          const subValues = {};
-          subformulas.forEach(sf => { subValues[sf.label] = evaluate(sf, env); });
-          table.push({ env, subValues, result: evaluate(ast, env) });
-        }
-      } catch(e) {
-        showError(e.message);
-        return;
-      }
-
-      // ─── Build table HTML ──────────────────────────────────────
-      const rootLabel = ast.label;
-      // intermediate = all subformulas except the root
-      const intermediate = subformulas.filter(sf => sf.label !== rootLabel);
-
-      let html = `<div class="table-wrap"><table><thead><tr>`;
-      // Variable columns
-      vars.forEach(v => { html += `<th class="var-col">${v}</th>`; });
-      // Intermediate step columns
-      intermediate.forEach((sf, i) => {
-        const divClass = i === 0 ? ' divider-th' : '';
-        html += `<th class="sub-col${divClass}">${sf.label}</th>`;
-      });
-      // Final result column
-      html += `<th class="result-col">${rootLabel}</th>`;
-      html += `</tr></thead><tbody>`;
-
-      table.forEach(row => {
-        html += "<tr>";
-        // Variables
-        vars.forEach(v => {
-          html += `<td class="${row.env[v] === 1 ? 'val-1' : 'val-0'}">${row.env[v]}</td>`;
-        });
-        // Intermediate steps
-        intermediate.forEach((sf, i) => {
-          const val = row.subValues[sf.label];
-          const divClass = i === 0 ? ' divider-td' : '';
-          html += `<td class="${divClass} ${val === 1 ? 'val-1' : 'val-0'}">${val}</td>`;
-        });
-        // Final result
-        html += `<td class="result-td ${row.result === 1 ? 'val-1' : 'val-0'}">${row.result}</td>`;
-        html += "</tr>";
-      });
-
-      html += "</tbody></table></div>";
-      document.getElementById("tableWrap").innerHTML = html;
-
-      // ─── Stats ─────────────────────────────────────────────────
-      const ones = table.filter(r => r.result === 1).length;
-      const total = table.length;
-      const type = ones === total ? "tautology" : ones === 0 ? "contradiction" : "contingency";
-      const typeNL = type === "tautology" ? "Tautologie" : type === "contradiction" ? "Contradictie" : "Contingentie";
-      const typeClass = type === "tautology" ? "taut" : type === "contradiction" ? "contra" : "conting";
-      document.getElementById("stats").innerHTML = `
-        <div class="stat"><div class="stat-label">Rijen</div><div class="stat-val">${total}</div></div>
-        <div class="stat"><div class="stat-label">Stappen</div><div class="stat-val">${subformulas.length}</div></div>
-        <div class="stat"><div class="stat-label">Uitkomst 1</div><div class="stat-val taut">${ones}</div></div>
-        <div class="stat"><div class="stat-label">Uitkomst 0</div><div class="stat-val contra">${total - ones}</div></div>
-        <div class="stat"><div class="stat-label">Type</div><div class="stat-val ${typeClass}">${typeNL}</div></div>
-      `;
-    }
-  </script>
+function resetMenu(){
+  running=false;parts=[];projs=[];clones=[];vfx=[];
+  ctx.clearRect(0,0,W,H);
+  const ov=document.getElementById('ov');ov.style.display='flex';
+  ov.innerHTML=`
+    <h2>ANIME SPHERES</h2>
+    <p>10x HP &bull; Animated moves &bull; Click <b style="color:#FAC775">[E]</b> button to use your special attack</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+      <div class="pcol"><span>Player 1</span><div class="pgrid" id="pg1"></div></div>
+      <div class="pcol"><span>Player 2</span><div class="pgrid" id="pg2"></div></div>
+    </div>
+    <button id="fight-btn" onclick="startGame()" style="font-family:Bangers,cursive;font-size:20px;letter-spacing:2px;padding:9px 36px;background:#E24B4A;color:#fff;border:none;border-radius:7px;cursor:pointer;margin-top:8px">FIGHT!</button>
+  `;
+  buildPicks();
+}
+</script>
 </body>
 </html>
-```
-<function_calls>
-<invoke name="bash_tool">
-<parameter name="description">Copy to outputs
